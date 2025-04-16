@@ -1,50 +1,87 @@
+# 8_puzzle_solver.py
 import streamlit as st
-from collections import deque
-import numpy as np
+import heapq
 
-goal_state = [[1,2,3],[4,5,6],[7,8,0]]
+goal_state = [[1, 2, 3], [4, 5, 6], [7, 8, 0]]
 
+# Heuristic function: Manhattan Distance
+def manhattan(state):
+    distance = 0
+    for i in range(3):
+        for j in range(3):
+            val = state[i][j]
+            if val != 0:
+                goal_x = (val - 1) // 3
+                goal_y = (val - 1) % 3
+                distance += abs(goal_x - i) + abs(goal_y - j)
+    return distance
+
+# Find position of 0 (blank)
+def find_zero(state):
+    for i in range(3):
+        for j in range(3):
+            if state[i][j] == 0:
+                return (i, j)
+
+# Generate all valid next states
 def get_neighbors(state):
-    x, y = next((i, j) for i in range(3) for j in range(3) if state[i][j] == 0)
-    moves = []
-    for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
-        nx, ny = x+dx, y+dy
+    x, y = find_zero(state)
+    neighbors = []
+    directions = [(-1,0),(1,0),(0,-1),(0,1)]  # up, down, left, right
+    for dx, dy in directions:
+        nx, ny = x + dx, y + dy
         if 0 <= nx < 3 and 0 <= ny < 3:
             new_state = [row[:] for row in state]
             new_state[x][y], new_state[nx][ny] = new_state[nx][ny], new_state[x][y]
-            moves.append(new_state)
-    return moves
+            neighbors.append(new_state)
+    return neighbors
 
-def bfs(start):
+# Check if two boards are equal
+def same(state1, state2):
+    return all(state1[i][j] == state2[i][j] for i in range(3) for j in range(3))
+
+# A* Algorithm
+def solve_puzzle(start):
+    queue = [(manhattan(start), 0, start, [])]
     visited = set()
-    queue = deque([(start, [])])
     while queue:
-        current, path = queue.popleft()
-        state_tuple = tuple(map(tuple, current))
+        est_total, cost, state, path = heapq.heappop(queue)
+        state_tuple = tuple(tuple(row) for row in state)
         if state_tuple in visited:
             continue
         visited.add(state_tuple)
-        if current == goal_state:
-            return path + [current]
-        for neighbor in get_neighbors(current):
-            queue.append((neighbor, path + [current]))
+        if same(state, goal_state):
+            return path + [state]
+        for neighbor in get_neighbors(state):
+            heapq.heappush(queue, (
+                cost + 1 + manhattan(neighbor),
+                cost + 1,
+                neighbor,
+                path + [state]
+            ))
     return []
 
-def run_puzzle8_app():
-    st.header("🧩 8-Puzzle Solver (BFS)")
-    start_state_input = st.text_input("Enter initial state (comma-separated, 0 as blank):", "1,2,3,4,0,6,7,5,8")
-    if st.button("Solve"):
-        try:
-            flat = list(map(int, start_state_input.strip().split(",")))
-            assert len(flat) == 9
-            start_state = [flat[i*3:(i+1)*3] for i in range(3)]
-            solution_path = bfs(start_state)
-            if solution_path:
-                st.success(f"Solved in {len(solution_path)-1} moves!")
-                for idx, board in enumerate(solution_path):
-                    st.markdown(f"**Step {idx}**")
-                    st.table(board)
-            else:
-                st.error("No solution found.")
-        except:
-            st.error("Invalid input. Enter 9 numbers separated by commas.")
+def run_8puzzle_app():
+    st.header("🧩 8-Puzzle Solver")
+    st.markdown("""
+    This puzzle challenges you to rearrange tiles into the correct order using only the empty space to slide tiles around.  
+    The algorithm will find the optimal steps using **A\* Search** and **Manhattan Distance** as a heuristic.
+    """)
+
+    default = [[1, 2, 3], [4, 0, 6], [7, 5, 8]]
+    st.markdown("### Enter your 3x3 puzzle (use 0 for the empty tile):")
+    user_input = []
+    for i in range(3):
+        row = st.text_input(f"Row {i+1} (comma-separated)", value=",".join(map(str, default[i])))
+        user_input.append(list(map(int, row.strip().split(','))))
+
+    if st.button("🧠 Solve"):
+        st.write("Solving the puzzle...")
+        steps = solve_puzzle(user_input)
+        if not steps:
+            st.error("❌ No solution found. Try a different configuration.")
+        else:
+            st.success(f"✅ Puzzle Solved in {len(steps)-1} moves.")
+            for idx, state in enumerate(steps):
+                st.markdown(f"**Step {idx}**")
+                st.table(state)
