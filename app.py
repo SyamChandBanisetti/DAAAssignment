@@ -1,6 +1,6 @@
 import streamlit as st
 from utils.nqueens import run_nqueens_app
-from utils.puzzle8 import run_puzzle8_app
+from utils.puzzle8 import run_8puzzle_app
 from utils.pathfinder import run_pathfinder_app
 from utils.knapsack import run_knapsack_app
 
