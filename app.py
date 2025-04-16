@@ -1,4 +1,4 @@
-import streamlit as st
+import streamlit as st 
 from utils.nqueens import run_nqueens_app
 from utils.puzzle8 import run_8puzzle_app
 from utils.pathfinder import run_pathfinder_app
@@ -15,7 +15,7 @@ problem = st.sidebar.selectbox("Choose a Problem to Explore", [
 ])
 
 if problem == "8-Puzzle Solver":
-    run_puzzle8_app()
+    run_8puzzle_app()
 elif problem == "N-Queens Problem":
     run_nqueens_app()
 elif problem == "Pathfinding Maze":
